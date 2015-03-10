@@ -4,7 +4,7 @@
 
 rule snpEff:
     input: 
-        vcf="{base}.vcf",
+        vcf="{base}.raw.vcf",
         reference = config['references'][config['reference']]
     output:
         "{base}.annotated.snpEff_summary.html",
@@ -12,6 +12,7 @@ rule snpEff:
     params: 
         batch="-l nodes=1:gpfs",
         snpEff_genome=config["snpEff_genome"],
+        snpEff_config=config["snpEff_config"],
         CosmicCodingMuts=config["resources"]['CosmicCodingMuts'],
         dbsnp=config["resources"]['dbsnp'],
         clinvar=config["resources"]['clinvar'],
@@ -21,14 +22,14 @@ rule snpEff:
     shell: """
 module load snpEff/{version}
 java -Xmx16g -jar ${{SNPEFFHOME}}/SnpSift.jar \
-dbnsfp -a \
-{input.vcf} \
+dbnsfp \
+-c {params.snpEff_config} \
+-a {input.vcf} \
 | java -Xmx4g -jar ${{SNPEFFHOME}}/SnpSift.jar annotate {params.CosmicCodingMuts} /dev/stdin \
 | java -Xmx4g -jar ${{SNPEFFHOME}}/SnpSift.jar annotate {params.dbsnp} /dev/stdin \
 | java -Xmx4g -jar ${{SNPEFFHOME}}/SnpSift.jar annotate {params.clinvar} /dev/stdin \
 | java -Xmx4g -jar ${{SNPEFFHOME}}/SnpSift.jar  annotate {params.ESP_snps} /dev/stdin \
 | java -Xmx12g -jar ${{SNPEFFHOME}}/snpEff.jar \
--c snpEff.config \
 -s {output[0]} \
 -canon {params.snpEff_genome} > {output[1]}
 

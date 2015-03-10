@@ -1,4 +1,3 @@
-
 ## pindel
 rule pindel:
     input: 
@@ -7,32 +6,34 @@ rule pindel:
         insertSize="{base}.bam.insert_size_metrics",
         reference = config['references'][config['reference']]
     output:
-        configPindel="{base}.pindel.txt",
-        outputPindel=["{base}.pindel_LI", 
-            "{base}.pindel_TD", 
-            "{base}.pindel_INV",
-            "{base}.pindel_BP",
-            "{base}.pindel_SI",
-            "{base}.pindel_D",
-            "{base}.pindel_CloseEndMapped"]
+        outputPindel=["{base}/pindel/{sample}.pindel.raw_LI",
+            "{base}/pindel/{sample}.pindel.raw_TD", 
+            "{base}/pindel/{sample}.pindel.raw_INV",
+            "{base}/pindel/{sample}.pindel.raw_BP",
+            "{base}/pindel/{sample}.pindel.raw_SI",
+            "{base}/pindel/{sample}.pindel.raw_D",
+            "{base}/pindel/{sample}.pindel.raw_CloseEndMapped"]
     params: 
         batch="-l nodes=1:gpfs,mem=125gb -q ccr", 
-        pindelBase="{base}.pindel"
+        pindelBase="{base}/pindel/{sample}.pindel.raw",
+        configPindel="{base}/pindel/{sample}.pindel.txt"
     threads: 32
     version: "0.2.5"
     shell: """
-module load pindel/{version}
+# module load pindel/{version}
 insertSize=`head -8 {input.insertSize} | tail -1 | cut -f1`
 if [ $insertSize -lt 250 ];then
     insertSize=250
 fi
-echo \"{input.bam} $insertSize {wildcards.base}\" > {output.configPindel}
-pindel \
+echo \"{input.bam} $insertSize {wildcards.sample}\" > {params.configPindel}
+~/bin/pindel \
+-s -k -l \
 -T {threads} \
 -f {input.reference} \
--i {output.configPindel} \
+-i {params.configPindel} \
 -c ALL \
--o {params.pindelBase}
+-o {params.pindelBase} \
+-L {params.pindelBase}.log
 """  
 
 # -j /data/CCRBioinfo/zhujack/snake/hg19_chr_co.bed \
@@ -40,20 +41,21 @@ pindel \
 
 rule pindel2vcf:
     input: 
-        outputPindel="{base}.pindel_D",
+        outputPindel="{base}/pindel/{sample}.pindel.raw_D",
         reference = config['references'][config['reference']]
     output:
-        "{base}.pindel.vcf"
+        "{base}/pindel/{sample}.pindel.raw.vcf"
     params: 
         batch="-l nodes=1:gpfs,mem=125gb -q ccr",
-        pindelBase="{base}.pindel",
+        pindelBase="{base}/pindel/{sample}.pindel.raw",
         reference = config['reference']   
     threads: 32
     version: "0.2.5"
     shell: """
-module load pindel/{version}
-pindel2vcf \
+# module load pindel/{version}
+~/bin/pindel2vcf \
 -e 3 -co 100 \
+-v {output} \
 -P {params.pindelBase} \
 -r {input.reference} \
 -R {params.reference} \
@@ -66,7 +68,7 @@ rule platypus:
     input: bam="{base}.bam",
            bai="{base}.bam.bai",
            reference = config['references'][config['reference']]
-    output: "{base}.platypus.vcf"
+    output: "{base}/platypus/{sample}.platypus.raw.vcf"
     params: batch="-l nodes=1:gpfs -q ccr"
     threads: 32
     version: "0.7.9.1"
@@ -74,7 +76,9 @@ rule platypus:
     shell: """
 module load platypus/{version}
 python /data/ngs/usr/local/Platypus_{version}/Platypus.py callVariants \
---nCPU {threads} \
+--nCPU={threads} \
+--bufferSize=1000000 \
+--maxReads=100000000 \
 --bamFiles={input.bam} \
 --output={output} \
 --refFile={input.reference} \
@@ -88,7 +92,7 @@ rule UnifiedGenotyper:
            bai="{base}.bam.bai",
            reference = config['references'][config['reference']]
     output: 
-        "{base}.unifieldgenotyper.vcf"
+        "{base}/unifieldgenotyper/{sample}.unifieldgenotyper.raw.vcf"
     params: 
         batch="-l nodes=1:gpfs -q ccr",
         dbsnp=config["resources"]["dbsnp"]
@@ -113,7 +117,7 @@ rule HaplotypeCaller:
            bai="{base}.bam.bai",
            reference = config['references'][config['reference']]
     output: 
-        "{base}.haplotypecaller.vcf"
+        "{base}/haplotypecaller/{sample}.haplotypecaller.raw.vcf"
     params: 
         batch="-l nodes=1:gpfs -q ccr",
         dbsnp=config["resources"]["dbsnp"]
@@ -135,7 +139,7 @@ rule freebayes:
     input: bam="{base}.bam",
            bai="{base}.bam.bai",
            reference = config['references'][config['reference']]
-    output: "{base}.freebayes.vcf"
+    output: "{base}/freebayes/{sample}.freebayes.raw.vcf"
     params: batch="-l nodes=1:gpfs -q ccr"
     version: "0.9.15-3"
     run:

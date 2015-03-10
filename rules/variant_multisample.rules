@@ -5,7 +5,7 @@ rule UnifiedGenotyperM:
     input: bam=BAMS,
            bai=BAIS,
            reference = config['references'][config['reference']]
-    output: "STUDY/variant/" + config['reference'] + "." + config['aligner'] + "/unifieldgenotyper_all.vcf"
+    output: "STUDY/" + config['reference'] + "." + config['aligner'] + "/variant/unifieldgenotyper_all.raw.vcf"
     params: 
         batch="-l nodes=1:gpfs,mem=125gb -q ccr", 
         inBams=' '.join(["-I " + i for i in BAMS]),
@@ -34,7 +34,7 @@ rule freebayesM:
     input: bam=BAMS,
            bai=BAIS,
            reference = config['references'][config['reference']]
-    output: "STUDY/variant/" + config['reference'] + "." + config['aligner'] + "/freebayes_all.vcf"
+    output: "STUDY/" + config['reference'] + "." + config['aligner'] + "/variant/freebayes_all.raw.vcf"
     params: batch="-l nodes=1:gpfs -q ccr"
     version: "0.9.15-3"
     run:

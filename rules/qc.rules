@@ -1,3 +1,63 @@
+
+
+
+"""
+rulues for generating QC metrics and summarizing QC metrics
+"""
+
+rule qcSum:
+    input: expand("{metricsBase}.{metricsType}", metricsBase=metricsBases, metricsType=['summetrics','quality_distribution_metrics','hsmetrics'])
+    output: METRICS_summaries
+    params: 
+        batch=" -l  nodes=1:gpfs",
+        metricsPatterns=lambda wc: ','.join(metricsBases),
+        outDir="STUDY/" + config['reference'] + "." + config['aligner'] + "/qc"
+    shell: "echo {params.outDir}; do_qcSummaryFiles.R -I {params.metricsPatterns} -O {params.outDir} -T dupmetrics,summetrics,hsmetrics,qscoremetrics"
+
+
+rule DepthOfCoverage:
+    input: BAMS
+    output: "STUDY/" + config['reference'] + "." + config['aligner'] + "/qc/DepthOfCoverage"
+    params: 
+        batch="-l nodes=1:gpfs ", 
+        inBams=' '.join(["-I " + i for i in BAMS]),
+        reference = config['references'][config['reference']],
+        targets_interval_list = "/data/CCRBioinfo/public/serpentine_resources/design/enGene.cleaned.sorted.cds.hg19.merged.bed"
+    threads: 32
+    version: "3.3-0"
+    shell: """
+module load GATK/{version}
+clearscratch
+java -Xmx60g -Djava.io.tmpdir=/scratch \
+-jar ${{GATK_HOME}}/GenomeAnalysisTK.jar \
+-T DepthOfCoverage \
+-R {params.reference} \
+{params.inBams} \
+-L {params.targets_interval_list} \
+-ct 1 -ct 10 -ct 20 \
+-o {output}
+"""
+
+rule DiagnoseTargets:
+    input: BAMS
+    output: "STUDY/" + config['reference'] + "." + config['aligner'] + "/qc/DiagnoseTargets.vcf"
+    params: 
+        batch="-l nodes=1:gpfs ", 
+        inBams=' '.join(["-I " + i for i in BAMS]),
+        reference = config['references'][config['reference']],
+        targets_interval_list = "/data/CCRBioinfo/public/serpentine_resources/design/enGene.cleaned.sorted.cds.hg19.merged.bed",        
+    shell: """
+module load  GATK
+java -Xmx16g -Djava.io.tmpdir=/scratch \
+-jar ${{GATK_HOME}}/GenomeAnalysisTK.jar \
+-T DiagnoseTargets \
+-R {params.reference} \ \
+{params.inBams} \
+-L {params.targets_interval_list} \
+-o {output}
+"""
+
+
 # rule fastqcSum:
 #     """
 #     summarize fastqc at different levels for comparizon purpose
@@ -16,20 +76,40 @@
 # ...
 # """
 
+## old rule
+# rule fastqc:
+#     """
+#     fastqc data files will be saved to the same dir as the fastq files
+#     """
+#     input:
+#         "{prefix}.fastq.gz"
+#     output:
+#         "{prefix}_fastqc.zip"
+#     params:
+#         batch = '-l nodes=1:gpfs -q ccr'
+#     version: "0.11.2"
+#     log: "{prefix}_fastqc.log"
+#     threads: 8
+#     shell: """
+# module load fastqc/{version}
+# fastqc {input} > {log} 2>&1
+# """
+
+
 rule fastqc:
-    """fastqc data files will be saved to the same dir as the fastq files"""
-    input:
-        "{prefix}.fastq.gz"
-    output:
-        "{prefix}_fastqc.zip"
+    """
+    fastqc data files will be saved to the same dir as the fastq files
+    """
+    input: lambda wildcards: fqc2fq[wildcards.base]
+    output: "STUDY/fastqc/{base}_fastqc.zip"
     params: 
         batch = '-l nodes=1:gpfs -q ccr'
     version: "0.11.2"
-    log: "{prefix}_fastqc.log"
-    threads: 8
+    log: "STUDY/fastqc/log/{base}_fastqc.log"
+    threads: 32
     shell: """
 module load fastqc/{version}
-fastqc {input} > {log} 2>&1
+fastqc -t {threads} -o STUDY/fastqc {input} > {log} 2>&1
 """
 
 rule multiMetrics:
@@ -45,7 +125,9 @@ rule multiMetrics:
         "{base}.bam.quality_by_cycle_metrics"
     params: 
         batch="-l nodes=1:gpfs -q ccr",
-        outputBase="{base}.bam"
+        outputBase="{base}/qc/{sample}.final.bam",
+        aligner=config['aligner'],
+        reference=config['reference']
     version: "1.119"
     shell: """
 module load picard/{version}
@@ -57,30 +139,148 @@ OUTPUT={params.outputBase} \
 PROGRAM=CollectAlignmentSummaryMetrics \
 PROGRAM=CollectInsertSizeMetrics \
 PROGRAM=QualityScoreDistribution \
-PROGRAM=MeanQualityByCycle
+PROGRAM=MeanQualityByCycle \
+PROGRAM=CollectBaseDistributionByCycle
+
+if [ -f {params.outputBase}.alignment_summary_metrics ];then
+    mv {params.outputBase}.alignment_summary_metrics {output[0]}
+fi
+# ln -fs ../../{output[0]} STUDY/{params.reference}.{params.aligner}/qc/{wildcards.sample}.final.bam.summetrics
+""")
+
+rule flagstat:
+    input: 
+        bam="{base}/bam/{sample}.final.bam",
+        bai="{base}/bam/{sample}.final.bam.bai"
+    output:
+        "{base}/qc/{sample}.final.bam.flagstat"
+    params:
+        batch="-l nodes=1:gpfs "
+    version: "0.1.19"
+    shell: """
+module load samtools/{version}
+samtools flagstat {input[0]} > {output}
 """
 
-# rule targetIntervals:
-#     input: "bam/{source}_{tn, \w+}.realigned.md.bam"
-#     output: "bam/{source}_{tn, \w+}.realigned.md.bam.intervals"
-#     params: batch="-l nodes=1:gpfs "
-#     shell: """
-# module load samtools
-# cat <(samtools view -H {input}) <(gawk '{{print $1 "\t" $2+1 "\t" $3 "\t+\tinterval_" NR}}' {targets_interval_list} )> {output}
-# """
-#
-# rule hsMetrics:
-#     input: "bam/{source}_{tn, \w+}.realigned.md.bam",  "bam/{source}_{tn, \w+}.realigned.md.bam.intervals"
-#     output: "bam/{source}_{tn, \w+}.realigned.md.bam.hsmetrics"
-#     params: batch="-l nodes=1:gpfs "
-#     shell: """
-# module load picard/1.94
-# java -jar ${{PICARDJARPATH}}/CalculateHsMetrics.jar \
-# BAIT_INTERVALS={input[1]} \
-# TARGET_INTERVALS={input[1]} \
-# INPUT={input[0]} \
-# OUTPUT={output} \
-# METRIC_ACCUMULATION_LEVEL=ALL_READS \
-# QUIET=true  \
-# VALIDATION_STRINGENCY=SILENT
-# """
+rule sumDepth:
+    input: 
+        "{base}/qc/{sample}.final.bam.depth"
+    output:
+        "{base}/qc/{sample}.final.bam.depth.baseCoverageByTranscript.txt"
+    params:
+        batch="-l nodes=1:gpfs ",
+        outDir="{base}/qc",
+    threads: 32
+    version: ""
+    shell: """
+module load R/devel
+/home/zhujack/bin/do_sumDepth.R -f {input} -o {params.outDir}
+"""
+
+rule bamTools:
+    input: 
+        bam="{base}/bam/{sample}.final.bam",
+        bai="{base}/bam/{sample}.final.bam.bai"
+    output:
+        "{base}/qc/{sample}.final.bam.covSum.txt"
+    params:
+        batch="-l nodes=1:gpfs ",
+        outDir="{base}/qc",
+        genomic_intervals=lambda wildcards: config['genomic_intervals'][wildcards.sample].replace('.merged', '')
+    threads: 32
+    version: "Thu Jun 12 13:39:54 EDT 2014 on biowulf.nih.gov"
+    shell: """
+/home/zhujack/bin/bamTools coverage -overwrite -onlystats -nomerge {params.genomic_intervals} {output} {input.bam}
+"""
+
+
+rule readDepth:
+    input: 
+        bam="{base}/bam/{sample}.final.bam",
+        bai="{base}/bam/{sample}.final.bam.bai"
+    output:
+        "{base}/qc/{sample}.final.bam.depth"
+    params:
+        batch="-l nodes=1:gpfs ",
+        outDir="{base}/qc",
+        genomic_intervals=lambda wildcards: config['genomic_intervals'][wildcards.sample].replace('.merged', '')
+    threads: 32
+    version: "2.19.0"
+    shell: """
+module load bedtools/{version}
+/home/zhujack/bin/readDepth.sh {input.bam} {params.genomic_intervals} {params.outDir}
+mv {output} {output}.tmp
+grep "^all" {output}.tmp | cut -f 2-3 > {output}.hist
+grep -v "^all" {output}.tmp > {output}
+rm -f {output}.tmp
+/home/zhujack/bin/do_hist.R -f {output}.hist -o {params.outDir}
+"""
+
+
+rule bamqc:
+    input: 
+        bam="{base}/bam/{sample}.final.bam",
+        bai="{base}/bam/{sample}.final.bam.bai"
+    output:
+        "{base}/qc/bamqc/{sample}.final.bam.qualimapReport.html"
+    params:
+        batch="-l nodes=1:gpfs ",
+        outDir="{base}/qc/bamqc",
+        gff=lambda wildcards: config['genomic_intervals'][wildcards.sample].replace('.bed', '.gff')
+    threads: 32
+    version: "v2.0"
+    shell: """
+module load qualimap/{version}
+qualimap bamqc -c -bam {input.bam} -outdir {params.outDir} -gff {params.gff} -nt {threads} --java-mem-size=60G
+
+if [ -f "{params.outDir}/qualimapReport.html" ]; then
+    mv {params.outDir}/qualimapReport.html {output}
+fi
+
+"""
+
+
+rule targetIntervals:
+    input: 
+        bam="{base}/bam/{sample}.final.bam",
+        bai="{base}/bam/{sample}.final.bam.bai",
+        reference = config['references'][config['reference']]
+    output:
+        temp("{base}/qc/{sample}.final.bam.intervals")
+    params:
+        batch="-l nodes=1:gpfs ",
+        targets_interval_list = lambda wildcards: config['genomic_intervals'][wildcards.sample]
+    version: "0.1.19"
+    shell: """
+module load samtools/{version}
+cat <(samtools view -H {input.bam}) <(gawk '{{print $1 "\t" $2+1 "\t" $3 "\t+\tinterval_" NR}}' {params.targets_interval_list} )> {output}
+"""
+
+
+rule hsMetrics:
+    input:
+        bam="{base}/bam/{sample}.final.bam",
+        interval="{base}/qc/{sample}.final.bam.intervals",
+        reference = config['references'][config['reference']]
+    output:
+        "{base}/qc/{sample}.final.bam.hsmetrics"
+    params: 
+        batch="-l nodes=1:gpfs ",
+        ref_name = config['reference'],
+        aligner=config['aligner']
+    version: "1.119"
+    shell: """
+module load picard/{version}
+java -Xmx16g -jar ${{PICARDJARPATH}}/CalculateHsMetrics.jar \
+BAIT_INTERVALS={input.interval} \
+TARGET_INTERVALS={input.interval} \
+INPUT={input.bam} \
+OUTPUT={output} \
+METRIC_ACCUMULATION_LEVEL=ALL_READS \
+REFERENCE_SEQUENCE={input.reference} \
+QUIET=true  \
+VALIDATION_STRINGENCY=SILENT
+
+"""
+#ln -fs {output} STUDY/{params.ref_name}.{params.aligner}/qc/{wildcards.sample}.final.bam.hsmmetrics
+

@@ -25,7 +25,7 @@ rule bamtdf:
         "{base}.bam.tdf"
     params: 
         batch="-l nodes=1:gpfs -q ccr",
-        genome = config['reference'].replace("human_g1k_v37", "1kg_v37")
+        genome = config['reference'].replace("human_g1k_v37", "1kg_v37").replace("ucsc.hg19", "hg19")
     version: 
         "2.3.31"
     shell: """
@@ -41,9 +41,11 @@ rule gatk_print_reads:
         recal_table = "{base}.bam.recal_table",
         reference = config['references'][config['reference']]
     output:
-        "{base}.recal.bam"
+        bam="{base}/{sample}.final.bam",
+        bai="{base}/{sample}.final.bam.bai"
     params:
-        batch = "-l nodes=1:gpfs -q ccr"
+        batch = "-l nodes=1:gpfs -q ccr",
+        tmpBai = "{base}/{sample}.final.bai"
     threads: 8
     version: 
         config['gatkVersion']
@@ -55,7 +57,11 @@ java -Xmx4g -jar $GATKJAR \
 -I {input.bam} \
 -R {input.reference} \
 -BQSR {input.recal_table} \
--o {output}
+-o {output.bam}
+
+if [ -f {params.tmpBai} ];then
+    mv {params.tmpBai} {output.bai}
+fi
 """
 
 rule gatk_base_recalibrator:
@@ -65,7 +71,7 @@ rule gatk_base_recalibrator:
         dbsnp = config['resources']['dbsnp'],
         reference = config['references'][config['reference']]
     output:
-        "{base}.bam.recal_table"
+        temp("TEMP/{sample}.recal_table")
     params:
         batch = "-l nodes=1:gpfs -q ccr"
     threads:
@@ -89,7 +95,7 @@ rule gatk_realigner_target_creator:
         known = config['resources']['knownIndels'],
         reference = config['references'][config['reference']]
     output: 
-        "{base}.bam.intervals"
+        temp("TEMP/{sample}.md.intervals")
     params:
         batch = "-l nodes=1:gpfs"
     threads:
@@ -116,7 +122,7 @@ rule gatk_indel_realigner:
         intervals = "{base}.bam.intervals",
         reference = config['references'][config['reference']]
     output:
-        "{base}.realigned.bam"
+        temp("TEMP/{sample}.realigned.bam")
     params:
         batch = "-l nodes=1:gpfs"
     threads: 8
@@ -148,23 +154,41 @@ sambamba index -t {threads} {input}
 """
 
 
+rule mvDup:
+    threads: 1
+    input: "TEMP/{sample}.final.bam.dupmetrics"
+    output: "{base}/qc/{sample}.final.bam.dupmetrics"
+    params: batch="-l nodes=1:gpfs"
+    version: "1.119"
+    shell: """
+mv {input} {output}
+"""
+
 rule markdups:
     threads: 1
-    input: "{base}.bam",
-           "{base}.bam.bai"
-    output: bam="{base}.md.bam",
-            metrics="{base}.bam.dupmetrics"
+    input: "TEMP/{sample}.sample.bam",
+           "TEMP/{sample}.sample.bam.bai"
+    output: bam=temp("TEMP/{sample}.md.bam"),
+            metrics=temp("TEMP/{sample}.final.bam.dupmetrics")
     params: 
-        batch="-l nodes=1:gpfs"
+        batch="-l nodes=1:gpfs",
+        qc_dir = lambda wildcards: "SUBJECT/{subject}/{sample}/{reference}.{aligner}/qc".format(subject=SAMPLE_TO_SUBJECT[wildcards.sample], sample=wildcards.sample,  reference=config['reference'], aligner=config['aligner'] )
     version: "1.119"
     shell: """
 module load picard/{version}
-java -jar $PICARDJARPATH/MarkDuplicates.jar \
+java -jar ${{PICARDJARPATH}}/MarkDuplicates.jar \
 AS=true M={output.metrics} \
 O={output.bam} \
 I={input[0]} \
 REMOVE_DUPLICATES=false \
 VALIDATION_STRINGENCY=SILENT
+
+# if [ ! -d {params.qc_dir} ]; then
+#     mkdir -p {params.qc_dir}
+# fi
+#
+# cp {output.metrics} {params.qc_dir}
+
 """
 
 rule mergeBam2Sample:
@@ -172,7 +196,7 @@ rule mergeBam2Sample:
         batch="-l nodes=1:gpfs"
     input: _get_unit_bams_from_sample
     output:
-        "RESULTS/{reference,\w+}.{aligner,\w+}/{sample,\w+}/{sample}.bam"
+        temp("TEMP/{sample}.sample.bam")
     threads: 2
     version: "1.119"
     run:

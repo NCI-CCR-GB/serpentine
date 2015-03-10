@@ -5,9 +5,13 @@
 #
 NOW=$(date +"%H%M%S_%m%d%Y")
 module load snakemake
-cd $PBS_O_WORKDIR
+wd=analysis_602
+cd $wd
+
 export SERPENTINE_HOME=/data/CCRBioinfo/zhujack/projects/serpentine
 snakemake --jobname 's.{jobid}.{rulename}' \
+  -d $wd \
+  -s ../Snakefile \
   --js $SERPENTINE_HOME/jobscript.sh \
   -k -r -p -w 10 \
   -T --rerun-incomplete \

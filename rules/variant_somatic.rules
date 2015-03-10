@@ -6,7 +6,8 @@ rule MuTect:
         reference = config['references'][config['reference']]
     output: 
         call_stats="{anything}/mutect/{somaticPair}.mutect.call_stats.txt", 
-        coverage="{anything}/mutect/{somaticPair}.mutect.coverage.wig.txt"
+        coverage="{anything}/mutect/{somaticPair}.mutect.coverage.wig.txt",
+        vcf="{anything}/mutect/{somaticPair}.mutect.raw.vcf"
     params: 
         batch="-l nodes=1:gpfs -q ccr",
         dbsnp=config["resources"]["dbsnp"],
@@ -16,7 +17,7 @@ rule MuTect:
     shell: """
 module load muTect/{version}
 muTect \
---memory 16g \
+--memory 58g \
 --analysis_type MuTect \
 --reference_sequence {input.reference} \
 --cosmic {params.cosmic} \
@@ -24,8 +25,44 @@ muTect \
 --input_file:normal {input[0]} \
 --input_file:tumor {input[2]} \
 --out {output.call_stats} \
---coverage_file {output.coverage} 
+--coverage_file {output.coverage} \
+--vcf  {output.vcf}
 """
+
+
+rule VarScan:
+    input: 
+        lambda wildcards: somaticPairs[wildcards.somaticPair],
+        reference = config['references'][config['reference']]
+    output: 
+        snvs="{anything}/varscan/{somaticPair}.varscan.snvs.raw.vcf",
+        indels="{anything}/varscan/{somaticPair}.varscan.indels.raw.vcf"
+    params: 
+        batch="-l nodes=1:gpfs -q ccr",
+        outBase="{anything}/varscan/{somaticPair}.varscan"
+    version: "2.3.6"
+    threads: 32
+    shell: """
+module load samtools/0.1.19
+java -Xmx58g -jar \
+/usr/local/apps/varscan/current/VarScan.v{version}.jar somatic \
+<( samtools mpileup -q 2 -f {input.reference} {input[0]} ) \
+<( samtools mpileup -q 2 -f {input.reference} {input[2]} ) \
+{params.outBase} --output-vcf -min-var-freq 0.05
+
+if [ -f {params.outBase}.snp.vcf ]; then
+    mv {params.outBase}.snp.vcf {output.snvs}
+fi
+if [ -f {params.outBase}.indel.vcf ]; then
+    mv {params.outBase}.indel.vcf {output.indels}
+fi
+"""
+
+# java -Xmx58g -jar \
+# /usr/local/apps/varscan/current/VarScan.v{version}.jar somatic \
+# <( samtools mpileup -C50 -BQ0 -d 1000000 -A -f {input.reference} {input[0]} ) \
+# <( samtools mpileup -C50 -d 1000000 -A -f {input.reference} {input[2]} ) \
+# {params.outBase} --output-vcf -min-var-freq 0.05
 
 
 rule strelka:
@@ -33,7 +70,7 @@ rule strelka:
     input: 
         lambda wildcards: somaticPairs[wildcards.somaticPair],
         reference = config['references'][config['reference']]
-    output: "{anything}/strelka/{somaticPair}.strelka.snvs.vcf", "{anything}/strelka/{somaticPair}.strelka.indels.vcf"
+    output: "{anything}/strelka/{somaticPair}.strelka.snvs.raw.vcf", "{anything}/strelka/{somaticPair}.strelka.indels.raw.vcf"
     params: batch="-l nodes=1:gpfs -q ccr"
     version: "1.0.14"
     threads: 32

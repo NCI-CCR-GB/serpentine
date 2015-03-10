@@ -15,7 +15,7 @@ rule bwamem_map:
         index=lambda wildcards: "resources/mapping/bwaindex_"+ config['bwaVersion'] +"/"+config['reference']+".pac",
         fastq=lambda wildcards: config["units"][wildcards.unit]
     output:
-        temp("RESULTS/{reference}.bwamem/{sample}/{unit,\w+}.unit.bam")
+        temp("TEMP/{unit}.unit.bam")
     version: config['bwaVersion']
     params:
         batch ="-l nodes=1:gpfs -q ccr",
@@ -27,13 +27,36 @@ rule bwamem_map:
         custom=config.get("params_bwa_mem", "")
     log: "RESULTS/{reference}.bwamem/{sample}/{unit,\w+}.unit.bwa.log"
     threads: 64
-    shell: "module load bwa/0.7.10 && "
-        "bwa mem {params.custom} "
-        r"-R '@RG\tID:{wildcards.unit}\t"
-        r"SM:{params.sample}\tLB:{params.library}\tPL:{params.platform}' "
-        "-t {threads} {params.bwa_index} {input.fastq}  2> {log} "
-        "| samtools view -Sbh - "
-        "| samtools sort -m 30000000000 - {params.output_prefix}"
+    shell: """
+clearscratch
+module load ea-utils/r822
+R1=/scratch/`basename {input.fastq[0]}`
+R2=/scratch/`basename {input.fastq[1]}`
+mcf_log=/scratch/`basename {input.fastq[0]}`.mcf.log
+fastq-mcf -C 1000000 -q 2 -p 10 -u -x 20 -o $R1 -o $R2 /home/zhujack/bin/adapters.fa <(gunzip -c {input.fastq[0]}) <(gunzip -c {input.fastq[1]}) > $mcf_log 2>&1
+
+module load fastqc
+fastqc -t {threads} $R1
+fastqc -t {threads} $R2
+
+module load bwa/{version}
+bwa mem -M {params.custom} \
+-R '@RG\tID:{wildcards.unit}\tSM:{params.sample}\tLB:{params.library}\tPL:{params.platform}' \
+-t {threads} {params.bwa_index} $R1 $R2 2> {log} \
+| samtools view -Sbh - \
+| samtools sort -m 30000000000 - {params.output_prefix}
+
+if [ ! -d fastqc/trimmed ]; then
+    mkdir -p fastqc/trimmed
+fi
+mv /scratch/*fastqc.zip /scratch/*fastqc.html $mcf_log fastqc/trimmed/
+"""
+
+# RG="@RG\tID:${sample}\tLB:${sample}\tSM:${sample}\tPL:ILLUMINA"
+# /usr/local/apps/bwa/0.7.10/bwa mem -M -t 32 -R "$RG" $ref ${sample}_R1.fastq.gz ${sample}_R2.fastq.gz >$workdir/${sample}.sam
+# java -Xmx20g  -Djava.io.tmpdir=/scratch/ -jar /usr/local/apps/picard/1.119/SortSam.jar INPUT=$workdir/${sample}.sam OUTPUT=$dir/${sample}.bam SORT_ORDER=coordinate
+# samtools index $dir/${sample}.bam
+
 
 rule bwa_index_fasta:
     """Index fasta input for bwa.

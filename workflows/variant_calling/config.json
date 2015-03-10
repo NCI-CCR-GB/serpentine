@@ -1,7 +1,7 @@
 {
     "platform": "Illumina",
-    "reference": "human_g1k_v37",    
-    "aligners": ["novo","bwamem"],
+	"reference": "human_g1k_v37",    
+	"aligner": "bwamem",
     "params_bwa_mem": "",
     "bwaVersion": "0.7.10",
     "novoVersion": "3.02.08",
@@ -22,54 +22,67 @@
 	"clinvar": "/data/CCRBioinfo/zhujack/source/data/clinvar_dbsnp138_GRCh37_20140211.vcf"
     },
     "genomic_intervals": {
-    	"NA12878": "/data/CCRBioinfo/zhujack/source/data/TruSight-One-BED-May-2014.bed",
-    	"NA12891": "/data/CCRBioinfo/zhujack/source/data/TruSight-One-BED-May-2014.bed",
-    	"NA12892": "/data/CCRBioinfo/zhujack/source/data/TruSight-One-BED-May-2014.bed",
-    	"Sample_RMS2096blood": ""		
+		"GIAB_SS_Clinical_Exome": "Agilent_SureSelect_Clinical_Research_Exome",
+		"GIST130N_SS_Clinical_Exome": "Agilent_SureSelect_Clinical_Research_Exome",
+		"GIST32T_SS_Clinical_Exome": "Agilent_SureSelect_Clinical_Research_Exome",
+		"GIST130T_SS_Clinical_Exome": "Agilent_SureSelect_Clinical_Research_Exome",
+		"GIST32N_SS_Clinical_Exome": "Agilent_SureSelect_Clinical_Research_Exome",
+		"GIST130N_SeqCap_Exome": "NimbleDesign_SeqCap_EZ_Human_Exome_Library_v3",
+		"GIST32N_SeqCap_Exome": "NimbleDesign_SeqCap_EZ_Human_Exome_Library_v3",
+		"GIST130T_SeqCap_Exome": "NimbleDesign_SeqCap_EZ_Human_Exome_Library_v3",
+		"GIST32T_SeqCap_Exome": "NimbleDesign_SeqCap_EZ_Human_Exome_Library_v3",
+		"GIAB_SeqCap_Exome": "NimbleDesign_SeqCap_EZ_Human_Exome_Library_v3"
     },
-    "sample_references": {
-	"NA12878_DNA": ["NA12891_DNA", "NA12892_DNA"],
-	"NA12891_DNA": ["NA12878_DNA", "NA12892_DNA"],
-	"NA12892_DNA": ["NA12878_DNA", "NA12891_DNA"]
+	"studies": {
+		"Agilent_SureSelect_Clinical_Research_Exome": ["GIAB_SS_Clinical_Exome", "GIST130N_SS_Clinical_Exome", "GIST32T_SS_Clinical_Exome", "GIST130T_SS_Clinical_Exome", "GIST32N_SS_Clinical_Exome"],
+		"NimbleDesign_SeqCap_EZ_Human_Exome_Library_v3": ["GIST130N_SeqCap_Exome", "GIST32N_SeqCap_Exome", "GIST130T_SeqCap_Exome", "GIST32T_SeqCap_Exome", "GIAB_SeqCap_Exome"]
+	},
+	"subjects": {
+		"Genome-in-a-bottle": ["GIAB_SeqCap_Exome", "GIAB_SS_Clinical_Exome"],
+		"GIST130": ["GIST130N_SS_Clinical_Exome", "GIST130T_SS_Clinical_Exome", "GIST130N_SeqCap_Exome", "GIST130T_SeqCap_Exome"],
+		"GIST32": ["GIST32T_SS_Clinical_Exome", "GIST32N_SS_Clinical_Exome", "GIST32N_SeqCap_Exome", "GIST32T_SeqCap_Exome"]
     },
-    "samples": {
-	"_comment": "This block relates samples to libraries",
-	"NA12878_DNA": ["L_NA12878rep1_4", "L_NA12878rep2_4", "L_NA12878rep3_4","L_NA12878rep4_4"],
-	"NA12891_DNA": ["L_NA12891_rep1_4", "L_NA12891_rep2_4", "L_NA12891_rep3_4","L_NA12891_rep4_4"],
-	"NA12892_DNA": ["L_NA12892_rep1_4", "L_NA12892_rep2_4", "L_NA12892_rep3_4","L_NA12892_rep4_4"],
-	"RMS2096blood_DNA": ["L_RMS2096blood"]
+	"sample_references": {
+		 "GIST130T_SeqCap_Exome": ["GIST130N_SeqCap_Exome"],
+		 "GIST32T_SeqCap_Exome": ["GIST32N_SeqCap_Exome"],
+		 "GIST32T_SS_Clinical_Exome": ["GIST32N_SS_Clinical_Exome"],
+		 "GIST130T_SS_Clinical_Exome": ["GIST130N_SS_Clinical_Exome"]
+    },
+	"samples": {
+		"GIAB_SeqCap_Exome": ["GIAB_SeqCap_Exome"],
+		"GIAB_SS_Clinical_Exome": ["GIAB_SS_Clinical_Exome"],
+		"GIST130N_SS_Clinical_Exome": ["GIST130N_SS_Clinical_Exome"],
+		"GIST32T_SS_Clinical_Exome": ["GIST32T_SS_Clinical_Exome"],
+		"GIST130T_SS_Clinical_Exome": ["GIST130T_SS_Clinical_Exome"],
+		"GIST32N_SS_Clinical_Exome": ["GIST32N_SS_Clinical_Exome"],
+		"GIST130N_SeqCap_Exome": ["GIST130N_SeqCap_Exome"],
+		"GIST32N_SeqCap_Exome": ["GIST32N_SeqCap_Exome"],
+		"GIST130T_SeqCap_Exome": ["GIST130T_SeqCap_Exome"],
+		"GIST32T_SeqCap_Exome": ["GIST32T_SeqCap_Exome"]
     },
     "libraries": {
-	"_comment": "This block relates libraries to 'units'",
-	"L_NA12878rep1_4": ["NA12878rep1_4"],
-	"L_NA12878rep2_4": ["NA12878rep2_4"],
-	"L_NA12878rep3_4": ["NA12878rep3_4"],
-	"L_NA12878rep4_4": ["NA12878rep4_4"],
-	"L_NA12891_rep1_4": ["NA12891_rep1_4"],
-	"L_NA12891_rep2_4": ["NA12891_rep2_4"],
-	"L_NA12891_rep3_4": ["NA12891_rep3_4"],
-	"L_NA12891_rep4_4": ["NA12891_rep4_4"],
-	"L_NA12892_rep1_4": ["NA12892_rep1_4"],
-	"L_NA12892_rep2_4": ["NA12892_rep2_4"],
-	"L_NA12892_rep3_4": ["NA12892_rep3_4"],
-	"L_NA12892_rep4_4": ["NA12892_rep4_4"],
-	"L_RMS2096blood": ["RMS2096blood"]
+		"GIAB_SeqCap_Exome": ["33155"],
+		"GIAB_SS_Clinical_Exome": ["33156"],
+		"GIST130N_SS_Clinical_Exome": ["33157"],
+		"GIST32T_SS_Clinical_Exome": ["33158"],
+		"GIST130T_SS_Clinical_Exome": ["33159"],
+		"GIST32N_SS_Clinical_Exome": ["33160"],
+		"GIST130N_SeqCap_Exome": ["33161"],
+		"GIST32N_SeqCap_Exome": ["33162"],
+		"GIST130T_SeqCap_Exome": ["33163"],
+		"GIST32T_SeqCap_Exome": ["33164"]
     },
     "units": {
-	"_comment": "A 'unit' is the smallest packet of data produced by a sequencing experiment, typically a single library(demultiplexed) run in a single lane",
-	"NA12878rep1_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads//TAAGGCGAATAGAGAG_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/TAAGGCGAATAGAGAG_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12878rep2_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CGTACTAGAGAGGATA_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CGTACTAGAGAGGATA_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12878rep3_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/AGGCAGAATCTACTCT_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/AGGCAGAATCTACTCT_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12878rep4_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/TCCTGAGCCTCCTTAC_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/TCCTGAGCCTCCTTAC_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12891_rep1_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/GGACTCCTATAGAGAG_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/GGACTCCTATAGAGAG_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12891_rep2_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/TAGGCATGAGAGGATA_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/TAGGCATGAGAGGATA_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12891_rep3_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CTCTCTACTCTACTCT_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CTCTCTACTCTACTCT_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12891_rep4_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CAGAGAGGCTCCTTAC_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CAGAGAGGCTCCTTAC_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12892_rep1_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/GCTACGCTATAGAGAG_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/GCTACGCTATAGAGAG_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12892_rep2_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CGAGGCTGAGAGGATA_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/CGAGGCTGAGAGGATA_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12892_rep3_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/AAGAGGCATCTACTCT_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/AAGAGGCATCTACTCT_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"NA12892_rep4_4": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/GTAGAGGACTCCTTAC_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/GTAGAGGACTCCTTAC_Illumina_NextSeq_500_TruSight_One_CEPH_Trio_replicates_4_250kreads_R2.fastq.gz"],
-	"RMS2096blood": ["/data/CCRBioinfo/fastq/test_data/fastq_250kreads/Sample_RMS2096blood_E_C2FWPACXX_250kreads_R1.fastq.gz", "/data/CCRBioinfo/fastq/test_data/fastq_250kreads/Sample_RMS2096blood_E_C2FWPACXX_250kreads_R1.fastq.gz"]
-    }
+		"33155": ["GGCTAC_3_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "GGCTAC_3_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33156": ["CGCTGA_3_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "CGCTGA_3_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33157": ["CAGATC_2_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "CAGATC_2_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33158": ["ATGCCT_2_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "ATGCCT_2_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33159": ["ACCACT_2_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "ACCACT_2_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33160": ["AACGTG_2_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "AACGTG_2_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33161": ["TGACCA_1_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "TGACCA_1_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33162": ["GCCAAT_1_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "GCCAAT_1_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33163": ["CGATGT_1_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "CGATGT_1_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"],
+		"33164": ["ACAGTG_1_1_AC624DANXX.695_BUSTARD-2014-12-16.fq.", "ACAGTG_1_3_AC624DANXX.695_BUSTARD-2014-12-16.fq.gz"]		
+	}
 }
 
